@@ -21,7 +21,7 @@ are returned with appropriate status codes.
 
 from io import BytesIO
 from xml.etree.cElementTree import ElementTree, tostring
-import urllib
+from urllib.parse import unquote
 
 
 class Verifier(object):
@@ -130,7 +130,7 @@ class Verifier(object):
             href = response.find("{DAV:}href")
             if href is None:
                 return False, "           Wrong number of DAV:href elements\n"
-            href = urllib.unquote(href.text)
+            href = unquote(href.text)
             if href in ignores:
                 continue
             if only and href not in only:

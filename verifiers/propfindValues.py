@@ -21,7 +21,7 @@ Verifier that checks a propfind response for regex matches to property values.
 from io import BytesIO, StringIO
 from xml.etree.cElementTree import ElementTree, tostring
 import re
-import urllib
+from urllib.parse import unquote
 
 
 class Verifier(object):
@@ -79,7 +79,7 @@ class Verifier(object):
             href = response.findall("{DAV:}href")
             if len(href) != 1:
                 return False, "           Wrong number of DAV:href elements\n"
-            href = urllib.unquote(href[0].text)
+            href = unquote(href[0].text)
             if href in ignores:
                 continue
             if only and href not in only:

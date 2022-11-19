@@ -21,14 +21,13 @@ Defines the 'request' class which encapsulates an HTTP request and verification.
 from hashlib import md5, sha1
 from src.httpshandler import SmartHTTPConnection
 from src.xmlUtils import getYesNoAttributeValue
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse, urlunparse
 import base64
 import datetime
 import os
 import re
 import src.xmlDefs
 import time
-import urllib
 import uuid
 
 algorithms = {
@@ -233,9 +232,9 @@ class request(object):
             # Redo digest auth from scratch to get a new nonce etc
             http = SmartHTTPConnection(si.host, si.port, si.ssl, si.afunix)
             try:
-                puri = list(urlparse.urlparse(self.getURI(si)))
-                puri[2] = urllib.quote(puri[2])
-                quri = urlparse.urlunparse(puri)
+                puri = list(urlparse(self.getURI(si)))
+                puri[2] = quote(puri[2])
+                quri = urlunparse(puri)
                 http.request("OPTIONS", quri)
 
                 response = http.getresponse()

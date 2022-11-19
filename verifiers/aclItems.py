@@ -21,7 +21,7 @@ are available for the currently authenticated user.
 
 from io import BytesIO
 from xml.etree.cElementTree import ElementTree
-import urllib
+from urllib.parse import unquote
 
 
 class Verifier(object):
@@ -51,7 +51,7 @@ class Verifier(object):
             href = response.findall("{DAV:}href")
             if len(href) != 1:
                 return False, "           Wrong number of DAV:href elements\n"
-            href = urllib.unquote(href[0].text)
+            href = unquote(href[0].text)
 
             # Get all privileges
             granted_privs = []

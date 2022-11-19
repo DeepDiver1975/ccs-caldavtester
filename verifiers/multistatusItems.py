@@ -22,7 +22,7 @@ are returned with appropriate status codes.
 from io import BytesIO
 from src.utils import processHrefSubstitutions
 from xml.etree.cElementTree import ElementTree
-import urllib
+from urllib.parse import unquote
 
 
 class Verifier(object):
@@ -85,7 +85,7 @@ class Verifier(object):
             href = response.findall("{DAV:}href")
             if href is None or len(href) != 1:
                 return False, "        Incorrect/missing DAV:Href element in response"
-            href = urllib.unquote(href[0].text).rstrip("/")
+            href = unquote(href[0].text).rstrip("/")
 
             # Verify status
             status = response.findall("{DAV:}status")
