@@ -73,7 +73,7 @@ class Verifier(object):
         def removePropertiesParameters(component):
 
             allProps = []
-            for properties in component.getProperties().itervalues():
+            for properties in component.getProperties().values():
                 allProps.extend(properties)
             for property in allProps:
                 for filter in filters:

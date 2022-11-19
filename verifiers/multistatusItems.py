@@ -21,7 +21,7 @@ are returned with appropriate status codes.
 
 from io import BytesIO
 from src.utils import processHrefSubstitutions
-from xml.etree.cElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree
 from urllib.parse import unquote
 
 

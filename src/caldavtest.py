@@ -32,7 +32,7 @@ from src.request import request
 from src.request import stats
 from src.testsuite import testsuite
 from src.xmlUtils import nodeForPath, xmlPathSplit
-from xml.etree.cElementTree import ElementTree, tostring
+from xml.etree.ElementTree import ElementTree, tostring
 import json
 import os
 import socket
@@ -43,7 +43,7 @@ import time
 import traceback
 from email.utils import parsedate
 from http.client import HTTPConnection
-from io import BytesIO
+from io import StringIO, BytesIO
 from urllib.parse import quote, urlparse, urlunparse
 
 """
@@ -268,7 +268,7 @@ class caldavtest(object):
         if len(resource[2]):
             req.pswd = resource[2]
         _ignore_result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label=label)
-        if response.status / 100 != 2:
+        if response.status // 100 != 2:
             return False, None
 
         return True, respdata
@@ -298,7 +298,7 @@ class caldavtest(object):
         result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label=label)
         if result and (response is not None) and (response.status == 207) and (respdata is not None):
             try:
-                tree = ElementTree.fromstring(respdata)
+                tree = ElementTree(file=StringIO(respdata))
             except Exception:
                 return ()
 
@@ -329,7 +329,7 @@ class caldavtest(object):
             if len(deleter[2]):
                 req.pswd = deleter[2]
             _ignore_result, _ignore_resulttxt, response, _ignore_respdata = self.dorequest(req, False, False, label=label)
-            if response.status / 100 != 2:
+            if response.status // 100 != 2:
                 return False
 
         return True
@@ -369,7 +369,7 @@ class caldavtest(object):
         result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label="%s | %s" % (label, "FINDNEW"))
         if result and (response is not None) and (response.status == 207) and (respdata is not None):
             try:
-                tree = ElementTree(file=BytesIO(respdata))
+                tree = ElementTree(file=StringIO(respdata))
             except Exception:
                 return hresult
 
@@ -455,7 +455,7 @@ class caldavtest(object):
         result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label="%s | %s" % (label, "FINDNEW"))
         if result and (response is not None) and (response.status == 207) and (respdata is not None):
             try:
-                tree = ElementTree(file=BytesIO(respdata))
+                tree = ElementTree(file=StringIO(respdata))
             except Exception:
                 return hresult
 
@@ -504,7 +504,7 @@ class caldavtest(object):
             result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label="%s | %s %d" % (label, "WAITCOUNT", count))
             hrefs = []
             if result and (response is not None) and (response.status == 207) and (respdata is not None):
-                tree = ElementTree(file=BytesIO(respdata))
+                tree = ElementTree(file=StringIO(respdata))
 
                 for response in tree.findall("{DAV:}response"):
                     href = response.findall("{DAV:}href")[0]
@@ -550,7 +550,7 @@ class caldavtest(object):
                 req.pswd = pswd
             result, _ignore_resulttxt, response, _ignore_respdata = self.dorequest(req, False, False, label="%s | %s" % (label, "WAITCHANGED"))
             if result and (response is not None):
-                if response.status / 100 == 2:
+                if response.status // 100 == 2:
                     hdrs = response.msg.getheaders("Etag")
                     if hdrs:
                         newetag = hdrs[0].encode("utf-8")
@@ -749,20 +749,20 @@ class caldavtest(object):
             result, txt = self.verifyrequest(req, uri, response, respdata)
             resulttxt += txt
         elif forceverify:
-            result = (response.status / 100 == 2)
+            result = (response.status // 100 == 2)
             if not result:
                 resulttxt += "Status Code Error: %d" % response.status
 
         if req.print_request or (self.manager.print_request_response_on_error and not result and not req.wait_for_success):
             requesttxt = "\n-------BEGIN:REQUEST-------\n"
-            requesttxt += http.requestData
+            requesttxt += http.requestData.decode('utf-8')
             requesttxt += "\n--------END:REQUEST--------\n"
             self.manager.message("protocol", requesttxt)
 
         if req.print_response or (self.manager.print_request_response_on_error and not result and not req.wait_for_success):
             responsetxt = "\n-------BEGIN:RESPONSE-------\n"
             responsetxt += "%s %s %s\n" % (getVersionStringFromResponse(response), response.status, response.reason,)
-            responsetxt += str(response.msg) + "\n" + respdata
+            responsetxt += str(response.msg) + "\n" + respdata.decode('utf-8')
             responsetxt += "\n--------END:RESPONSE--------\n"
             self.manager.message("protocol", responsetxt)
 
@@ -777,7 +777,7 @@ class caldavtest(object):
         if req.grabcount:
             ctr = None
             if result and (response is not None) and (response.status == 207) and (respdata is not None):
-                tree = ElementTree.fromstring(respdata)
+                tree = ElementTree(file=StringIO(respdata))
                 ctr = len(tree.findall("{DAV:}response")) - 1
 
             if ctr is None or ctr == -1:
@@ -824,7 +824,8 @@ class caldavtest(object):
                     resulttxt += "\n%d found but expecting %d for element %s from response\n" % (len(elementvalues), len(variables), elementpath,)
                 else:
                     for variable, elementvalue in zip(variables, elementvalues):
-                        self.manager.server_info.addextrasubs({variable: elementvalue.encode("utf-8") if elementvalue else ""})
+                        #self.manager.server_info.addextrasubs({variable: elementvalue.encode("utf-8") if elementvalue else ""})
+                        self.manager.server_info.addextrasubs({variable: elementvalue if elementvalue else ""})
 
         if req.grabjson:
             for pointer, variables in req.grabjson:
@@ -925,7 +926,7 @@ class caldavtest(object):
     def extractProperty(self, propertyname, respdata):
 
         try:
-            tree = ElementTree.fromstring(respdata)
+            tree = ElementTree(file=StringIO(respdata))
         except Exception:
             return None
 
@@ -951,13 +952,13 @@ class caldavtest(object):
                 if len(prop) != 1:
                     return False, "           Wrong number of DAV:prop elements\n"
 
-                for child in prop[0].getchildren():
+                for child in list(prop[0]):
                     fqname = child.tag
                     if len(child):
                         # Copy sub-element data as text into one long string and strip leading/trailing space
                         value = ""
-                        for p in child.getchildren():
-                            temp = tostring(p)
+                        for p in list(child):
+                            temp = tostring(p, encoding="unicode")
                             temp = temp.strip()
                             value += temp
                     else:
@@ -971,7 +972,7 @@ class caldavtest(object):
     def extractElement(self, elementpath, respdata):
 
         try:
-            tree = ElementTree.fromstring(respdata)
+            tree = ElementTree(file=StringIO(respdata))
         except:
             return None
 

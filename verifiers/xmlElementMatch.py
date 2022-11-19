@@ -24,8 +24,8 @@ try:
     from pycalendar.icalendar.calendar import Calendar
 except ImportError:
     pass
-from io import BytesIO, StringIO
-from xml.etree.cElementTree import ElementTree
+from io import StringIO, BytesIO
+from xml.etree.ElementTree import ElementTree
 import json
 import re
 
@@ -165,10 +165,10 @@ class Verifier(object):
                 result = "        Missing child returned in XML for %s\n" % (node_path,)
         elif test[0] == '|':
             if len(test) == 2 and test[1] == "|":
-                if node.text is None and len(node.getchildren()) == 0:
+                if node.text is None and len(list(node)) == 0:
                     result = "        Empty element returned in XML for %s\n" % (node_path,)
             else:
-                if node.text is not None or len(node.getchildren()) != 0:
+                if node.text is not None or len(list(node)) != 0:
                     result = "        Non-empty element returned in XML for %s\n" % (node_path,)
 
         # Try to parse as iCalendar
@@ -202,7 +202,7 @@ class Verifier(object):
             tests = None
 
         if parent_map is None:
-            parent_map = dict((c, p) for p in root.getiterator() for c in p)
+            parent_map = dict((c, p) for p in root.iter() for c in p)
 
         # Handle parents
         if actual_xpath.startswith("../"):

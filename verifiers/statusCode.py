@@ -31,7 +31,7 @@ class Verifier(object):
             else:
                 test = int(test)
             if test < 100:
-                result = ((response.status / 100) == test)
+                result = ((response.status // 100) == test)
             else:
                 result = (response.status == test)
             if result:

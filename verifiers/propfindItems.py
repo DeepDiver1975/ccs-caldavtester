@@ -19,8 +19,8 @@ Verifier that checks a propfind response to make sure that the specified propert
 are returned with appropriate status codes.
 """
 
-from io import BytesIO
-from xml.etree.cElementTree import ElementTree, tostring
+from io import BytesIO, StringIO
+from xml.etree.ElementTree import ElementTree, tostring, fromstring
 from urllib.parse import unquote
 
 
@@ -68,10 +68,13 @@ class Verifier(object):
 
             if value[0] == '<':
                 try:
-                    tree = ElementTree(file=BytesIO(value))
+                    if isinstance(value, str):
+                        tree = ElementTree(file=StringIO(value))
+                    else:
+                        tree = ElementTree(file=BytesIO(value))
                 except Exception:
                     return False, "           Could not parse XML value: %s\n" % (value,)
-                value = tostring(tree.getroot())
+                value = tostring(tree.getroot(), encoding="unicode")
             return value
 
         # Get property arguments and split on $ delimited for name, value tuples
@@ -158,13 +161,13 @@ class Verifier(object):
                 # Get properties for this propstat
                 prop = props.find("{DAV:}prop")
 
-                for child in prop.getchildren():
+                for child in list(prop):
                     fqname = child.tag
                     if len(child):
                         # Copy sub-element data as text into one long string and strip leading/trailing space
                         value = ""
-                        for p in child.getchildren():
-                            temp = tostring(p)
+                        for p in list(child):
+                            temp = tostring(p, encoding="unicode")
                             temp = temp.strip()
                             value += temp
                         if status:

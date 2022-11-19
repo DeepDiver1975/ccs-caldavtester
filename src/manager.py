@@ -21,7 +21,7 @@ Class to manage the testing process.
 from src.serverinfo import serverinfo
 
 from importlib import import_module
-from xml.etree.cElementTree import ElementTree
+from xml.etree.ElementTree import ElementTree
 from xml.parsers.expat import ExpatError
 import getopt
 import os
@@ -198,7 +198,7 @@ class manager:
 
             self.message("Reading Test Details from \"{f}\"".format(f=fname))
             if self.base_dir:
-                fname = fname[len(self.base_dir) + 1:]
+                fname = fname[len(self.base_dir):]
             test = caldavtest(self, fname)
             test.parseXML(caldavtest_node)
             return test
