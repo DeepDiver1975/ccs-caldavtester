@@ -18,12 +18,7 @@
 Class to encapsulate a single caldav test run.
 """
 
-try:
-    # Treat pycalendar as optional
-    from pycalendar.icalendar.calendar import Calendar
-except ImportError:
-    print("Unable to import Calendar from pycalendar, ignoring.")
-    pass
+from pycalendar.icalendar.calendar import Calendar
 from src.httpshandler import SmartHTTPConnection
 from src.jsonPointer import JSONMatcher
 from src.manager import manager

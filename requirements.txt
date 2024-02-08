@@ -1,6 +1,1 @@
-##
-# CalDAVTester dependency
-##
-
---editable .  # caldavtester
---editable git+https://github.com/apple/ccs-pycalendar.git#egg=pycalendar
+pycalendar @ git+https://github.com/DeepDiver1975/ccs-pycalendar.git@03fc1a01d7f5f59d50f5923eb8d807f2b750933b
