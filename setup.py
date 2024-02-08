@@ -98,64 +98,6 @@ def git_info(wc_path):
     )
 
 
-def version():
-    """
-    Compute the version number.
-    """
-    source_root = dirname(abspath(__file__))
-
-    info = git_info(source_root)
-
-    if info is None:
-        # We don't have GIT info...
-        return "{}a1+unknown".format(base_version)
-
-    assert info["project"] == base_project, (
-        "GIT project {!r} != {!r}"
-        .format(info["project"], base_project)
-    )
-
-    if info["tag"]:
-        project_version = info["tag"]
-        project, version = project_version.split("-")
-        assert project == project_name, (
-            "Tagged project {!r} != {!r}".format(project, project_name)
-        )
-        assert version == base_version, (
-            "Tagged version {!r} != {!r}".format(version, base_version)
-        )
-        # This is a correctly tagged release of this project.
-        return base_version
-
-    if info["branch"].startswith("release/"):
-        project_version = info["branch"][len("release/"):]
-        project, version, dev = project_version.split("-")
-        assert project == project_name, (
-            "Branched project {!r} != {!r}".format(project, project_name)
-        )
-        assert version == base_version, (
-            "Branched version {!r} != {!r}".format(version, base_version)
-        )
-        assert dev == "dev", (
-            "Branch name doesn't end in -dev: {!r}".format(info["branch"])
-        )
-        # This is a release branch of this project.
-        # Designate this as beta2, dev version based on git revision.
-        return "{}b2.dev-{}".format(base_version, info["revision"])
-
-    if info["branch"] == "master":
-        # This is master.
-        # Designate this as beta1, dev version based on git revision.
-        return "{}b1.dev-{}".format(base_version, info["revision"])
-
-    # This is some unknown branch or tag...
-    return "{}a1.dev-{}+{}".format(
-        base_version,
-        info["revision"],
-        info["branch"].replace("/", ".").replace("-", "."),
-    )
-
-
 #
 # Options
 #
@@ -214,7 +156,7 @@ extensions = []
 #
 
 def doSetup():
-    version_string = version()
+    version_string = "0.2"
 
     setup(
         name=project_name,
