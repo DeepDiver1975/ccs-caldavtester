@@ -19,10 +19,10 @@ Verifier that checks a multistatus response to make sure that the specified href
 are returned with appropriate status codes.
 """
 
+from io import BytesIO
 from src.utils import processHrefSubstitutions
-from xml.etree.cElementTree import ElementTree
-from StringIO import StringIO
-import urllib
+from xml.etree.ElementTree import ElementTree
+from urllib.parse import unquote
 
 
 class Verifier(object):
@@ -72,7 +72,7 @@ class Verifier(object):
             return False, "           HTTP Status for Request: %d\n" % (response.status,)
 
         try:
-            tree = ElementTree(file=StringIO(respdata))
+            tree = ElementTree(file=BytesIO(respdata))
         except Exception:
             return False, "           HTTP response is not valid XML: %s\n" % (respdata,)
 
@@ -85,7 +85,7 @@ class Verifier(object):
             href = response.findall("{DAV:}href")
             if href is None or len(href) != 1:
                 return False, "        Incorrect/missing DAV:Href element in response"
-            href = urllib.unquote(href[0].text).rstrip("/")
+            href = unquote(href[0].text).rstrip("/")
 
             # Verify status
             status = response.findall("{DAV:}status")

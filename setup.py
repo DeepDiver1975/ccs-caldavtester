@@ -16,8 +16,6 @@
 # limitations under the License.
 ##
 
-from __future__ import print_function
-
 from os.path import dirname, abspath, join as joinpath
 from setuptools import setup, find_packages as setuptools_find_packages
 import errno
@@ -62,7 +60,7 @@ def git_info(wc_path):
     except subprocess.CalledProcessError:
         return None
 
-    branch = branch.strip()
+    branch = branch.decode().strip()
 
     try:
         revision = subprocess.check_output(
@@ -76,7 +74,7 @@ def git_info(wc_path):
     except subprocess.CalledProcessError:
         return None
 
-    revision = revision.strip()
+    revision = revision.decode().strip()
 
     try:
         tag = subprocess.check_output(
@@ -90,71 +88,13 @@ def git_info(wc_path):
     except subprocess.CalledProcessError:
         tag = None
     else:
-        tag = tag.strip()
+        tag = tag.decode().strip()
 
     return dict(
         project=base_project,
         branch=branch,
         revision=revision,
         tag=tag,
-    )
-
-
-def version():
-    """
-    Compute the version number.
-    """
-    source_root = dirname(abspath(__file__))
-
-    info = git_info(source_root)
-
-    if info is None:
-        # We don't have GIT info...
-        return "{}a1+unknown".format(base_version)
-
-    assert info["project"] == base_project, (
-        "GIT project {!r} != {!r}"
-        .format(info["project"], base_project)
-    )
-
-    if info["tag"]:
-        project_version = info["tag"]
-        project, version = project_version.split("-")
-        assert project == project_name, (
-            "Tagged project {!r} != {!r}".format(project, project_name)
-        )
-        assert version == base_version, (
-            "Tagged version {!r} != {!r}".format(version, base_version)
-        )
-        # This is a correctly tagged release of this project.
-        return base_version
-
-    if info["branch"].startswith("release/"):
-        project_version = info["branch"][len("release/"):]
-        project, version, dev = project_version.split("-")
-        assert project == project_name, (
-            "Branched project {!r} != {!r}".format(project, project_name)
-        )
-        assert version == base_version, (
-            "Branched version {!r} != {!r}".format(version, base_version)
-        )
-        assert dev == "dev", (
-            "Branch name doesn't end in -dev: {!r}".format(info["branch"])
-        )
-        # This is a release branch of this project.
-        # Designate this as beta2, dev version based on git revision.
-        return "{}b2.dev-{}".format(base_version, info["revision"])
-
-    if info["branch"] == "master":
-        # This is master.
-        # Designate this as beta1, dev version based on git revision.
-        return "{}b1.dev-{}".format(base_version, info["revision"])
-
-    # This is some unknown branch or tag...
-    return "{}a1.dev-{}+{}".format(
-        base_version,
-        info["revision"],
-        info["branch"].replace("/", ".").replace("-", "."),
     )
 
 
@@ -166,7 +106,7 @@ project_name = "CalDAVTester"
 
 description = "CalDAV/CardDAV protocol test suite"
 
-long_description = file(joinpath(dirname(__file__), "README.md")).read()
+long_description = open(joinpath(dirname(__file__), "README.md")).read()
 
 url = "https://github.com/apple/ccs-caldavtester"
 
@@ -216,7 +156,7 @@ extensions = []
 #
 
 def doSetup():
-    version_string = version()
+    version_string = "0.2"
 
     setup(
         name=project_name,

@@ -18,8 +18,8 @@
 Verifier that checks the response for a pre/post-condition <DAV:error> result.
 """
 
-from xml.etree.cElementTree import ElementTree
-from StringIO import StringIO
+from io import BytesIO
+from xml.etree.ElementTree import ElementTree
 
 
 class Verifier(object):
@@ -39,8 +39,8 @@ class Verifier(object):
             return False, "        No pre/post condition response body"
 
         try:
-            tree = ElementTree(file=StringIO(respdata))
-        except Exception, ex:
+            tree = ElementTree(file=BytesIO(respdata))
+        except Exception as ex:
             return False, "        Could not parse XML: %s" % (ex,)
 
         if tree.getroot().tag != "{DAV:}error":
@@ -49,7 +49,7 @@ class Verifier(object):
         # Make a set of expected pre/post condition elements
         expected = set(teststatus)
         got = set()
-        for child in tree.getroot().getchildren():
+        for child in list(tree.getroot()):
             if child.tag != "{http://twistedmatrix.com/xml_namespace/dav/}error-description":
                 got.add(child.tag)
 

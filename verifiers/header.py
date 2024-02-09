@@ -45,7 +45,7 @@ class Verifier(object):
         result = True
         resulttxt = ""
         for hdrname, hdrvalue, presence, matchvalue in testheader:
-            hdrs = response.msg.getheaders(hdrname)
+            hdrs = response.msg.get_all(hdrname)
             if (hdrs is None or (len(hdrs) == 0)):
                 if presence != "none":
                     result = False
@@ -64,6 +64,7 @@ class Verifier(object):
                 continue
 
             if (len(hdrs) != 1) and (presence == "single"):
+                print(hdrname, hdrs)
                 result = False
                 if len(resulttxt):
                     resulttxt += "\n"
@@ -83,6 +84,6 @@ class Verifier(object):
                     result = False
                     if len(resulttxt):
                         resulttxt += "\n"
-                    resulttxt += "        Wrong Response Header Value: %s: %s" % (hdrname, str(hdrs))
+                    resulttxt += "        Wrong Response Header Value: %s: %s (expected: %s)" % (hdrname, str(hdrs), hdrvalue)
 
         return result, resulttxt

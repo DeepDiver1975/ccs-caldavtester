@@ -18,12 +18,7 @@
 Class to encapsulate a single caldav test run.
 """
 
-from cStringIO import StringIO
-try:
-    # Treat pycalendar as optional
-    from pycalendar.icalendar.calendar import Calendar
-except ImportError:
-    pass
+from pycalendar.icalendar.calendar import Calendar
 from src.httpshandler import SmartHTTPConnection
 from src.jsonPointer import JSONMatcher
 from src.manager import manager
@@ -32,34 +27,34 @@ from src.request import request
 from src.request import stats
 from src.testsuite import testsuite
 from src.xmlUtils import nodeForPath, xmlPathSplit
-from xml.etree.cElementTree import ElementTree, tostring
-import commands
-import httplib
+from xml.etree.ElementTree import ElementTree, tostring
 import json
 import os
-import rfc822
 import socket
 import src.xmlDefs
+import subprocess
 import sys
 import time
 import traceback
-import urllib
-import urlparse
+from email.utils import parsedate
+from http.client import HTTPConnection
+from io import StringIO, BytesIO
+from urllib.parse import quote, urlparse, urlunparse
 
 """
 Patch the HTTPConnection.send to record full request details
 """
 
-httplib.HTTPConnection._send = httplib.HTTPConnection.send
+HTTPConnection._send = HTTPConnection.send
 
 
-def recordRequestHeaders(self, str):
+def recordRequestHeaders(self, data):
     if not hasattr(self, "requestData"):
-        self.requestData = ""
-    self.requestData += str
-    httplib.HTTPConnection._send(self, str)  # @UndefinedVariable
+        self.requestData = b""
+    self.requestData += data
+    HTTPConnection._send(self, data)  # @UndefinedVariable
 
-httplib.HTTPConnection.send = recordRequestHeaders
+HTTPConnection.send = recordRequestHeaders
 
 
 def getVersionStringFromResponse(response):
@@ -122,10 +117,10 @@ class caldavtest(object):
             self.doenddelete("Deleting Requests...", label="%s | %s" % (self.name, "END_DELETE"))
             self.dorequests("End Requests...", self.end_requests, False, label="%s | %s" % (self.name, "END_REQUESTS"))
             return ok, failed, ignored
-        except socket.error, msg:
+        except socket.error as msg:
             self.manager.testFile(self.name, "SOCKET ERROR: %s" % (msg,), manager.RESULT_ERROR)
             return 0, 1, 0
-        except Exception, e:
+        except Exception as e:
             self.manager.testFile(self.name, "FATAL ERROR: %s" % (e,), manager.RESULT_ERROR)
             if self.manager.debug:
                 traceback.print_exc()
@@ -268,7 +263,7 @@ class caldavtest(object):
         if len(resource[2]):
             req.pswd = resource[2]
         _ignore_result, _ignore_resulttxt, response, respdata = self.dorequest(req, False, False, label=label)
-        if response.status / 100 != 2:
+        if response.status // 100 != 2:
             return False, None
 
         return True, respdata
@@ -329,7 +324,7 @@ class caldavtest(object):
             if len(deleter[2]):
                 req.pswd = deleter[2]
             _ignore_result, _ignore_resulttxt, response, _ignore_respdata = self.dorequest(req, False, False, label=label)
-            if response.status / 100 != 2:
+            if response.status // 100 != 2:
                 return False
 
         return True
@@ -407,7 +402,7 @@ class caldavtest(object):
                                 if len(glm) != 1:
                                     continue
                                 value = glm[0].text
-                                value = rfc822.parsedate(value)
+                                value = parsedate(value)
                                 value = time.mktime(value)
                                 if value > latest:
                                     possible_matches.clear()
@@ -550,7 +545,7 @@ class caldavtest(object):
                 req.pswd = pswd
             result, _ignore_resulttxt, response, _ignore_respdata = self.dorequest(req, False, False, label="%s | %s" % (label, "WAITCHANGED"))
             if result and (response is not None):
-                if response.status / 100 == 2:
+                if response.status // 100 == 2:
                     hdrs = response.msg.getheaders("Etag")
                     if hdrs:
                         newetag = hdrs[0].encode("utf-8")
@@ -590,7 +585,7 @@ class caldavtest(object):
 
         if isinstance(req, pause):
             # Useful for pausing at a particular point
-            print "Paused"
+            print("Paused")
             sys.stdin.readline()
             return True, "", None, None
 
@@ -726,10 +721,10 @@ class caldavtest(object):
             headers['User-Agent'] = label.encode("utf-8")
 
         try:
-            puri = list(urlparse.urlparse(uri))
+            puri = list(urlparse(uri))
             if req.ruri_quote:
-                puri[2] = urllib.quote(puri[2])
-            quri = urlparse.urlunparse(puri)
+                puri[2] = quote(puri[2])
+            quri = urlunparse(puri)
 
             http.request(method, quri, data, headers)
 
@@ -749,25 +744,25 @@ class caldavtest(object):
             result, txt = self.verifyrequest(req, uri, response, respdata)
             resulttxt += txt
         elif forceverify:
-            result = (response.status / 100 == 2)
+            result = (response.status // 100 == 2)
             if not result:
                 resulttxt += "Status Code Error: %d" % response.status
 
         if req.print_request or (self.manager.print_request_response_on_error and not result and not req.wait_for_success):
             requesttxt = "\n-------BEGIN:REQUEST-------\n"
-            requesttxt += http.requestData
+            requesttxt += http.requestData.decode('utf-8')
             requesttxt += "\n--------END:REQUEST--------\n"
             self.manager.message("protocol", requesttxt)
 
         if req.print_response or (self.manager.print_request_response_on_error and not result and not req.wait_for_success):
             responsetxt = "\n-------BEGIN:RESPONSE-------\n"
             responsetxt += "%s %s %s\n" % (getVersionStringFromResponse(response), response.status, response.reason,)
-            responsetxt += str(response.msg) + "\n" + respdata
+            responsetxt += str(response.msg) + "\n" + respdata.decode('utf-8')
             responsetxt += "\n--------END:RESPONSE--------\n"
             self.manager.message("protocol", responsetxt)
 
         if etags is not None and req.method == "GET":
-            hdrs = response.msg.getheaders("Etag")
+            hdrs = response.msg["Etag"]
             if hdrs:
                 etags[uri] = hdrs[0].encode("utf-8")
 
@@ -788,7 +783,7 @@ class caldavtest(object):
 
         if req.grabheader:
             for hdrname, variable in req.grabheader:
-                hdrs = response.msg.getheaders(hdrname)
+                hdrs = response.msg[hdrname]
                 if hdrs:
                     self.manager.server_info.addextrasubs({variable: hdrs[0].encode("utf-8")})
                 else:
@@ -824,7 +819,8 @@ class caldavtest(object):
                     resulttxt += "\n%d found but expecting %d for element %s from response\n" % (len(elementvalues), len(variables), elementpath,)
                 else:
                     for variable, elementvalue in zip(variables, elementvalues):
-                        self.manager.server_info.addextrasubs({variable: elementvalue.encode("utf-8") if elementvalue else ""})
+                        #self.manager.server_info.addextrasubs({variable: elementvalue.encode("utf-8") if elementvalue else ""})
+                        self.manager.server_info.addextrasubs({variable: elementvalue if elementvalue else ""})
 
         if req.grabjson:
             for pointer, variables in req.grabjson:
@@ -901,7 +897,7 @@ class caldavtest(object):
     def parseXML(self, node):
         self.ignore_all = node.get(src.xmlDefs.ATTR_IGNORE_ALL, src.xmlDefs.ATTR_VALUE_NO) == src.xmlDefs.ATTR_VALUE_YES
 
-        for child in node.getchildren():
+        for child in node:
             if child.tag == src.xmlDefs.ELEMENT_DESCRIPTION:
                 self.description = child.text
             elif child.tag == src.xmlDefs.ELEMENT_REQUIRE_FEATURE:
@@ -918,9 +914,9 @@ class caldavtest(object):
                 self.end_requests = request.parseList(self.manager, child)
 
     def parseFeatures(self, node, require=True):
-        for child in node.getchildren():
+        for child in node:
             if child.tag == src.xmlDefs.ELEMENT_FEATURE:
-                (self.require_features if require else self.exclude_features).add(child.text.encode("utf-8"))
+                (self.require_features if require else self.exclude_features).add(child.text)
 
     def extractProperty(self, propertyname, respdata):
 
@@ -951,13 +947,13 @@ class caldavtest(object):
                 if len(prop) != 1:
                     return False, "           Wrong number of DAV:prop elements\n"
 
-                for child in prop[0].getchildren():
+                for child in list(prop[0]):
                     fqname = child.tag
                     if len(child):
                         # Copy sub-element data as text into one long string and strip leading/trailing space
                         value = ""
-                        for p in child.getchildren():
-                            temp = tostring(p)
+                        for p in list(child):
+                            temp = tostring(p, encoding="unicode")
                             temp = temp.strip()
                             value += temp
                     else:
@@ -971,8 +967,7 @@ class caldavtest(object):
     def extractElement(self, elementpath, respdata):
 
         try:
-            tree = ElementTree()
-            tree.parse(StringIO(respdata))
+            tree = ElementTree(file=StringIO(respdata))
         except:
             return None
 
@@ -998,7 +993,7 @@ class caldavtest(object):
 
         try:
             tree = ElementTree()
-            tree.parse(StringIO(respdata))
+            tree.parse(BytesIO(respdata))
         except:
             return None
 
@@ -1118,7 +1113,7 @@ class caldavtest(object):
         """
         if self.manager.postgresLog:
             if os.path.exists(self.manager.postgresLog):
-                return int(commands.getoutput("grep \"LOG:  statement:\" %s | wc -l" % (self.manager.postgresLog,)))
+                return int(subprocess.getoutput("grep \"LOG:  statement:\" %s | wc -l" % (self.manager.postgresLog,)))
 
         return 0
 
@@ -1126,7 +1121,7 @@ class caldavtest(object):
 
         if self.manager.postgresLog:
             if os.path.exists(self.manager.postgresLog):
-                newCount = int(commands.getoutput("grep \"LOG:  statement:\" %s | wc -l" % (self.manager.postgresLog,)))
+                newCount = int(subprocess.getoutput("grep \"LOG:  statement:\" %s | wc -l" % (self.manager.postgresLog,)))
             else:
                 newCount = 0
             self.manager.message("trace", "Postgres Statements: %d" % (newCount - startCount,))
