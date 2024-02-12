@@ -828,7 +828,7 @@ class caldavtest(object):
                 pointervalues = self.extractPointer(pointer, respdata)
                 if pointervalues is None:
                     result = False
-                    resulttxt += "\Pointer %s was not extracted from response\n" % (pointer,)
+                    resulttxt += "Pointer %s was not extracted from response\n" % (pointer,)
                 elif len(variables) != len(pointervalues):
                     result = False
                     resulttxt += "\n%d found but expecting %d for pointer %s from response\n" % (len(pointervalues), len(variables), pointer,)
