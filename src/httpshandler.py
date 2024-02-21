@@ -108,7 +108,7 @@ def SmartHTTPConnection(host, port, ssl, afunix, cert=None):
             except:
                 cached.remove((host, port))
 
-        raise RuntimeError("Cannot connect via with TLSv1, SSLv3 or SSLv23")
+        raise RuntimeError(f"Cannot connect to {host}:{port} via with TLSv1, SSLv3 or SSLv23")
     else:
         connect = HTTPConnection(host, port)
     connect.connect()
